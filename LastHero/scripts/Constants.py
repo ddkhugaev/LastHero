@@ -11,8 +11,14 @@ MODE = 0
 # 1 is for main menu
 # IDK what else
 
+BDecoGroup = pygame.sprite.Group()
 ObstacleGroup = pygame.sprite.Group()
 EntityGroup = pygame.sprite.Group()
 HitboxGroup = pygame.sprite.Group()
 BulletGroup = pygame.sprite.Group()
-ItemGroup = pygame.sprite.Group()
+FBGroup = pygame.sprite.Group()
+SpecialGroup = pygame.sprite.Group()
+
+CurrentLevel = 0
+
+PARTICLES = []
