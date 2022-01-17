@@ -52,6 +52,7 @@ def GenerateLevel(fname:str, plist, elist, font):
     cs = 320 * ZK
     HitboxGroup.empty()
     BDecoGroup.empty()
+    TextGroup.empty()
     ObstacleGroup.empty()
     EntityGroup.empty()
     BulletGroup.empty()
@@ -84,15 +85,19 @@ def GenerateLevel(fname:str, plist, elist, font):
                         Text(j * cs, i * cs, font, el[1:])
                     elif el == 'F':
                         Finish(j * cs, i * cs)
+                    elif el.startswith('C'):
+                        Chest(j * cs, i * cs, int(el[1:]))
+                    elif el.startswith('BD'):
+                        BDecoration(j * cs, i * cs, el[2:])
 
 
-def ParseEvents_level(plist, elist, cLevel):
+def ParseEvents_level(plist, elist, cLevel, font):
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             return False
         if e.type == pygame.KEYDOWN:
             if e.key == pygame.K_r and e.mod & pygame.KMOD_CTRL:
-                GenerateLevel(cLevel, plist, elist)
+                GenerateLevel(cLevel, plist, elist, font)
                 return plist[0]
 
 
@@ -105,23 +110,22 @@ def ParseKeys_level(plist):
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         plist[0].left = True
         plist[0].step(-plist[0].sprite.speed)
-    if keys[pygame.K_SPACE] or keys[pygame.K_UP]:
+    if keys[pygame.K_UP] or keys[pygame.K_w]:
         plist[0].jump(-plist[0].sprite.jumpPower)
+    if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+        plist[0].descend()
     if keys[pygame.K_f]  or mouse_btn[0] is True:
         plist[0].attack()
-    if keys[pygame.K_p]:
-        #print(playerhb.in_air)
-        plist[0].damage(1)
 
 
 def EnemyCycle(elist, plist):
     delete = []
     for i, enemy in enumerate(elist):
-        if pygame.sprite.collide_rect(plist[0], enemy):
-            if plist[0].is_attack:
-                elist[i].damage(1)
-            else:
-                plist[0].damage(1)
+        if pygame.sprite.collide_rect(enemy, plist[0]):
+            plist[0].damage(1)
+        if pygame.sprite.collide_rect(enemy, plist[0].weaponhb) and \
+                plist[0].is_attack:
+            elist[i].damage(1)
         if not elist[i].is_alive:
             delete.append(i)
     for i in sorted(delete, reverse=True):
@@ -148,6 +152,7 @@ def MoveCamera_level(plist):
 def ObjectUpdate_level(*args):
     HitboxGroup.update(*args)
     BDecoGroup.update(*args)
+    TextGroup.update(*args)
     ObstacleGroup.update(*args)
     EntityGroup.update(*args)
     BulletGroup.update(*args)
@@ -156,12 +161,18 @@ def ObjectUpdate_level(*args):
 
 
 def SpecialsInteract(plist, elist, font):
-    global CurrentLevel
     for obj in SpecialGroup:
         if type(obj) == Finish:
             if pygame.sprite.collide_mask(plist[0], obj):
-                CurrentLevel += 1
-                GenerateLevel(f'data/levels/{levels[CurrentLevel]}.csv', plist, elist, font)
+                print(SCORE[CurrentLevel[0]])
+                CurrentLevel[0] += 1
+                GenerateLevel(f'data/levels/{levels[CurrentLevel[0]]}.csv', plist, elist, font)
+        if type(obj) == Chest:
+            if pygame.sprite.collide_mask(plist[0], obj) and obj.closed:
+                obj.closed = False
+                sf = pygame.Surface((0, 0))
+                obj.image = sf
+                SCORE[CurrentLevel[0]] += obj.val
 
 
 def CameraAffect_level(CX, CY):
@@ -170,6 +181,8 @@ def CameraAffect_level(CX, CY):
     for obj in ObstacleGroup:
         obj.rect.center = obj.x - CX, obj.y - CY
     for obj in BDecoGroup:
+        obj.rect.center = obj.x - CX, obj.y - CY
+    for obj in TextGroup:
         obj.rect.center = obj.x - CX, obj.y - CY
     for obj in EntityGroup:
         obj.rect.center = obj.x - CX, obj.y - CY
@@ -182,13 +195,15 @@ def CameraAffect_level(CX, CY):
 
 
 def Draw_level(mainsf, gui_sf, menu_sp):
-    menu_sp.draw(mainsf)
+    mainsf.fill((70, 150, 200))
+    #menu_sp.draw(mainsf)
 
     BDecoGroup.draw(mainsf)
+    TextGroup.draw(mainsf)
     ObstacleGroup.draw(mainsf)
     EntityGroup.draw(mainsf)
     BulletGroup.draw(mainsf)
     SpecialGroup.draw(mainsf)
     FBGroup.draw(mainsf)
-    HitboxGroup.draw(mainsf)
+    # HitboxGroup.draw(mainsf)
     mainsf.blit(gui_sf, (0, 0, 1, 1))

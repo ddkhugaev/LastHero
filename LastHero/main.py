@@ -1,3 +1,5 @@
+import pygame.time
+
 from scripts.Constants import *
 from scripts.Classes import *
 from scripts.Functions import *
@@ -14,7 +16,7 @@ CLOCK = pygame.time.Clock()
 start_screen(WINDOW, CLOCK)
 PLAYER = []
 ENEMIES = []
-GenerateLevel(f'data/levels/{levels[CurrentLevel]}.csv', PLAYER, ENEMIES, FONT)
+GenerateLevel(f'data/levels/{levels[CurrentLevel[0]]}.csv', PLAYER, ENEMIES, FONT)
 
 menu_sprites = pygame.sprite.Group()
 sprite_menu = pygame.sprite.Sprite()
@@ -35,7 +37,7 @@ while run:
         CX, CY = MoveCamera_level(PLAYER)
         CameraAffect_level(CX, CY)
 
-        res = ParseEvents_level(PLAYER, ENEMIES, 'data/levels/Tutorial.csv')
+        res = ParseEvents_level(PLAYER, ENEMIES, f'data/levels/{levels[CurrentLevel[0]]}.csv', FONT)
         if res is False:
             run = False
         elif res is PlayerHitbox:

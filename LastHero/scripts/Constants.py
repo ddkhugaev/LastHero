@@ -12,13 +12,15 @@ MODE = 0
 # IDK what else
 
 BDecoGroup = pygame.sprite.Group()
+TextGroup = pygame.sprite.Group()
 ObstacleGroup = pygame.sprite.Group()
 EntityGroup = pygame.sprite.Group()
-HitboxGroup = pygame.sprite.Group()
 BulletGroup = pygame.sprite.Group()
 FBGroup = pygame.sprite.Group()
+HitboxGroup = pygame.sprite.Group()
 SpecialGroup = pygame.sprite.Group()
 
-CurrentLevel = 0
+CurrentLevel = [0]
 
+SCORE = [0, 0]
 PARTICLES = []

@@ -1,4 +1,7 @@
 import math
+
+import pygame.sprite
+
 from scripts.Textures import *
 
 
@@ -58,7 +61,6 @@ class EntityHitbox(pygame.sprite.Sprite):
         self.bottomhb = BottomHitbox(w - 2)
         self.tophb = BottomHitbox(w - 2)
         self.v_vert = 0
-        self.in_air = True
         self.is_alive = True
         self.G = 0.16
 
@@ -70,7 +72,7 @@ class EntityHitbox(pygame.sprite.Sprite):
             return
         if not self.sprite.hurttimer:
             self.sprite.hp = min(self.sprite.hp - dmg, self.sprite.maxhp)
-            self.sprite.hurttimer = 120
+            self.sprite.hurttimer = 60
             for _ in range(5):
                 xs = random.randint(-5, 5)
                 ys = random.randint(-5, 0)
@@ -81,25 +83,22 @@ class EntityHitbox(pygame.sprite.Sprite):
                                                  'blue': -12.75}]], xs=xs, ys=ys))
         if self.sprite.hp <= 0:
             self.is_alive = False
+            self.image = pygame.Surface((0, 0))
 
     def update(self, *args):
         if self.sprite.hurttimer > 0:
             self.sprite.hurttimer -= 1
-        if self.in_air:
+        if not pygame.sprite.spritecollideany(self.bottomhb, ObstacleGroup):
             self.y += self.v_vert
             #self.rect.y += self.v_vert
             #self.bottomhb.rect.y += self.v_vert
             self.v_vert += self.G
-        if pygame.sprite.spritecollideany(self.bottomhb, ObstacleGroup) and \
-                pygame.sprite.spritecollideany(self, ObstacleGroup):
+        if pygame.sprite.spritecollideany(self, ObstacleGroup):
             self.y -= 1
-            self.in_air = False
             self.v_vert = 0
-        else:
-            self.in_air = True
         if pygame.sprite.spritecollideany(self.tophb, ObstacleGroup) and \
                 pygame.sprite.spritecollideany(self, ObstacleGroup):
-            self.v_vert = max(self.v_vert, 0)  # -self.v_vert) #()
+            self.v_vert = max(self.v_vert, 3)  # -self.v_vert) #()
         self.sprite.set_coords(self.x, self.y)
         self.bottomhb.set_coords(self.x + 1,
                                  self.y + self.h // 2)
@@ -112,7 +111,8 @@ class PlayerHitbox(EntityHitbox):
         super().__init__(*args)
         self.is_attack = False
         self.left = False
-        self.aroundhb = HelperHitbox(120, 120)
+        self.aroundhb = HelperHitbox(240, 240)
+        self.weaponhb = HelperHitbox(60, 80)
         self.cdv = 0
 
     def step(self, amount):
@@ -131,10 +131,15 @@ class PlayerHitbox(EntityHitbox):
         self.rect.x -= amount
 
     def jump(self, power):
-        if self.in_air or not self.is_alive:
+        if not (pygame.sprite.spritecollideany(self.bottomhb, ObstacleGroup) and self.is_alive):
             return
-        self.in_air = True
         self.v_vert = power
+        self.y += power
+
+    def descend(self):
+        if pygame.sprite.spritecollideany(self.bottomhb, ObstacleGroup) or not self.is_alive:
+            return
+        self.v_vert = max(self.v_vert, 0)
 
     def attack(self):
         if not self.is_alive:
@@ -162,12 +167,18 @@ class PlayerHitbox(EntityHitbox):
             self.sprite.image = pygame.transform.flip(player, self.left, False)
 
         self.aroundhb.set_coords(self.x, self.y)
+        self.weaponhb.set_coords(self.x + 50 * ((not self.left) - (self.left)),
+                                 self.y)
 
         for fb in FBGroup:
-            if pygame.sprite.collide_rect(fb, self):
+            if pygame.sprite.collide_rect(fb, self.aroundhb) and \
+                    pygame.sprite.spritecollideany(self, FBGroup):
                 fb.image.set_alpha(100)
             else:
                 fb.image.set_alpha(255)
+
+        if not self.is_alive:
+            self.sprite.image = player_die
 
 
 class EnemyHitbox(EntityHitbox):
@@ -262,7 +273,7 @@ class FakeBlock(pygame.sprite.Sprite):
 
 class Text(pygame.sprite.Sprite):
     def __init__(self, x, y, font:pygame.font.Font, text:str, color:tuple=(255, 255, 255)):
-        super().__init__(BDecoGroup)
+        super().__init__(TextGroup)
         self.image = font.render(text, True, color)
         self.rect = self.image.get_rect(center=(x, y))
         self.x = x
@@ -276,6 +287,33 @@ class Finish(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__(SpecialGroup)
         self.image = finish
+        self.rect = self.image.get_rect(center=(x, y))
+        self.x = x
+        self.y = y
+
+    def update(self, *args):
+        pass
+
+
+class Chest(pygame.sprite.Sprite):
+    def __init__(self, x, y, val):
+        super().__init__(SpecialGroup)
+        self.image = chest if not (val - 1) else coin
+        self.rect = self.image.get_rect(center=(x, y))
+        self.x = x
+        self.y = y
+        self.val = val
+        self.closed = True
+
+    def update(self, *args):
+        pass
+
+
+class BDecoration(pygame.sprite.Sprite):
+    def __init__(self, x, y, name):
+        super().__init__(BDecoGroup)
+        self.image = pygame.transform.rotozoom(
+            pygame.image.load(f'./data/textures/{name}.png'), 0, ZK)
         self.rect = self.image.get_rect(center=(x, y))
         self.x = x
         self.y = y
